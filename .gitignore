@@ -1,0 +1,15 @@
+*.pyc
+*.swp
+*.egg-info/
+results/
+data/*/data
+dist
+build
+*.zip
+.DS_Store
+scripts/predict/few_shot/data
+scripts/predict/few_shot/protonets
+scripts/train/few_shot/data
+scripts/train/few_shot/protonets
+*.pkl
+proto_results
