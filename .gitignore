@@ -13,3 +13,4 @@ scripts/train/few_shot/data
 scripts/train/few_shot/protonets
 *.pkl
 proto_results
+.ipynb_checkpoints
