@@ -30,11 +30,18 @@ class Protonet(nn.Module):
     def loss(self, sample):
         xs = Variable(sample['xs']) # support
         xq = Variable(sample['xq']) # query
+        
 
         n_class = xs.size(0)
         assert xq.size(0) == n_class
         n_support = xs.size(1)
         n_query = xq.size(1)
+
+        corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
+        corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
+
+        corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
+                    corase_class_q.contiguous().view(n_class * n_query, 1))).long())
 
         target_inds = torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).long()
         target_inds = Variable(target_inds, requires_grad=False)
@@ -51,31 +58,40 @@ class Protonet(nn.Module):
 
         # corase classifier part
         z_corase = self.corase_classifier.forward(z_share)
-
         log_p_y_corase = F.log_softmax(z_corase)
        
+        loss_val_corase = -log_p_y_corase.gather(1, corase_inds).squeeze().view(-1).mean()
+
+        _, y_hat = log_p_y_corase.max(1)
+        acc_val_corase = torch.eq(y_hat, corase_inds.squeeze()).float().mean()
+
         # fine feature part
-        z = self.fine_encoders[0].forward(z_share)
-        z_dim = z.size(-1)
+        # z = self.fine_encoders[0].forward(z_share)
+        # z_dim = z.size(-1)
 
-        for i in range(1, self.n_corase):
-           z += self.fine_encoders[i].forward(z_share)
+        # for i in range(1, self.n_corase):
+        #    z += self.fine_encoders[i].forward(z_share)
 
-        z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
-        zq = z[n_class*n_support:]
+        # z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
+        # zq = z[n_class*n_support:]
 
-        dists = euclidean_dist(zq, z_proto)
+        # dists = euclidean_dist(zq, z_proto)
 
-        log_p_y = F.log_softmax(-dists).view(n_class, n_query, -1)
+        # log_p_y = F.log_softmax(-dists).view(n_class, n_query, -1)
+        
+        # loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
 
-        loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
+        # _, y_hat = log_p_y.max(2)
+        # acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
 
-        _, y_hat = log_p_y.max(2)
-        acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
+        # return loss_val, {
+        #     'loss': loss_val.data[0],
+        #     'acc': acc_val.data[0]
+        # }
 
-        return loss_val, {
-            'loss': loss_val.data[0],
-            'acc': acc_val.data[0]
+        return loss_val_corase, {
+            'loss': loss_val_corase.data[0],
+            'acc': acc_val_corase.data[0]
         }
 
 @register_model('protonet_conv')
@@ -111,7 +127,7 @@ def load_protonet_conv(**kwargs):
         param.requires_grad = False
 
     # TODO: make n_corase a commandline parameter
-    n_corase = 1
+    n_corase = 2
 
     def gap_block(in_channels, out_channels, pre_size):
         return nn.Sequential(
