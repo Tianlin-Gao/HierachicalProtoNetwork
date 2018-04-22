@@ -92,7 +92,7 @@ def extract_episode(n_support, n_query, d):
 
 def get_cache_path(split):
     """Gets cache file name."""
-    cache_path = os.path.join(os.path.dirname(__file__), "../../../data/mini-imagenet/mini-imagenet-cache-" + split + ".pkl")
+    cache_path = os.path.join(os.path.dirname(__file__), "../../../data/mini-imagenet/mini-imagenet-cache-" + split + "-complement.pkl")
     return cache_path
 
 def load(opt, splits):
