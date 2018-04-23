@@ -20,11 +20,11 @@ from protonets.data.base import convert_dict, CudaTransform, EpisodicBatchSample
 # viz = Visdom()
 # REG = 1
 
-with open('../data/mini-imagenet/fine_to_corase.pkl', "rb") as f:
-    try:
-        fine_to_corase = pkl.load(f, encoding='bytes')
-    except:
-        fine_to_corase = pkl.load(f)
+# with open('../data/mini-imagenet/fine_to_corase.pkl', "rb") as f:
+#     try:
+#         fine_to_corase = pkl.load(f, encoding='bytes')
+#     except:
+#         fine_to_corase = pkl.load(f)
 
 MINI_IMGNET_DATA_DIR  = os.path.join(os.path.dirname(__file__), '../../../data/mini_imagenet_split')
 MINI_IMGNET_CACHE = { }
@@ -85,7 +85,7 @@ def extract_episode(n_support, n_query, d):
     xq = d['data'][query_inds]
     return {
         'fine_class': d['class'],
-        'corase_class': fine_to_corase[d['class']],
+        # 'corase_class': fine_to_corase[d['class']],
         'xs': xs,
         'xq': xq
     }
