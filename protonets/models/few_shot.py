@@ -50,7 +50,7 @@ class Protonet(nn.Module):
 
         if xq.is_cuda:
             target_inds = target_inds.cuda()
-            corase_inds = corase_inds.cuda()
+            # corase_inds = corase_inds.cuda()
 
         x = torch.cat([xs.view(n_class * n_support, *xs.size()[2:]),
                        xq.view(n_class * n_query, *xq.size()[2:])], 0)
