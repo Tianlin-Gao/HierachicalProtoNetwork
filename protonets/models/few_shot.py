@@ -21,10 +21,10 @@ class Flatten(nn.Module):
 class Protonet(nn.Module):
     def __init__(self, shared_layers, corase_classifier, n_corase, fine_encoder_0, fine_encoder_1):
         super(Protonet, self).__init__()
-        self.register_buffer('shared_layers', shared_layers)
-        # self.shared_layers = shared_layers
-        # self.corase_classifier = corase_classifier
-        self.register_buffer('corase_classifier', corase_classifier)
+        # self.register_buffer('shared_layers', shared_layers)
+        self.shared_layers = shared_layers
+        self.corase_classifier = corase_classifier
+        # self.register_buffer('corase_classifier', corase_classifier)
         self.n_corase = n_corase
         self.fine_encoder_0 = fine_encoder_0
         self.fine_encoder_1 = fine_encoder_1
@@ -69,33 +69,34 @@ class Protonet(nn.Module):
         acc_val_corase = torch.eq(y_hat, corase_inds.squeeze()).float().mean()
 
         # fine feature part
-        # z = self.fine_encoder_0.forward(z_share)
-        # z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * z
-        # z_dim = z.size(-1)
+        z = self.fine_encoder_0.forward(z_share)
+        z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * z
+        z_dim = z.size(-1)
            
-        # z += p_y_corase[:, 1].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self.fine_encoder_1.forward(z_share)
+        z += p_y_corase[:, 1].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self.fine_encoder_1.forward(z_share)
 
-        # z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
-        # zq = z[n_class*n_support:]
+        z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
+        zq = z[n_class*n_support:]
 
-        # dists = euclidean_dist(zq, z_proto)
+        dists = euclidean_dist(zq, z_proto)
 
-        # log_p_y = F.log_softmax(-dists).view(n_class, n_query, -1)
+        log_p_y = F.log_softmax(-dists).view(n_class, n_query, -1)
         
-        # loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
+        loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
 
-        # _, y_hat = log_p_y.max(2)
-        # acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
-
-        # return loss_val, {
-        #     'loss': loss_val.data[0],
-        #     'acc': acc_val.data[0]
-        # }
-
-        return loss_val_corase, {
-            'loss': loss_val_corase.data[0],
-            'acc': acc_val_corase.data[0]
+        _, y_hat = log_p_y.max(2)
+        acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
+        
+        w = 0.5
+        return loss_val + w * loss_val_corase, {
+            'loss': loss_val.data[0],
+            'acc': acc_val.data[0]
         }
+
+        # return loss_val_corase, {
+        #     'loss': loss_val_corase.data[0],
+        #     'acc': acc_val_corase.data[0]
+        # }
 
 @register_model('protonet_conv')
 def load_protonet_conv(**kwargs):
@@ -111,28 +112,28 @@ def load_protonet_conv(**kwargs):
             nn.MaxPool2d(2)
         )
         
-    # shared_layers = nn.Sequential(
-    #     conv_block(x_dim[0], hid_dim),
-    #     conv_block(hid_dim, hid_dim),
-    #     conv_block(hid_dim, hid_dim),
-    # )
-
-    model = torch.load('proto_results/m30_5way5shot/best_model.t7')
-
-    # load pretrained layers 
     shared_layers = nn.Sequential(
-        copy.deepcopy(model.encoder[0]),
-        copy.deepcopy(model.encoder[1]),
-        copy.deepcopy(model.encoder[2])
+        conv_block(x_dim[0], hid_dim),
+        conv_block(hid_dim, hid_dim),
+        conv_block(hid_dim, hid_dim),
     )
 
-    for param in shared_layers.parameters():
-        param.requires_grad = False
+    # model = torch.load('proto_results/m30_5way5shot/best_model.t7')
+
+    # # load pretrained layers 
+    # shared_layers = nn.Sequential(
+    #     copy.deepcopy(model.encoder[0]),
+    #     copy.deepcopy(model.encoder[1]),
+    #     copy.deepcopy(model.encoder[2])
+    # )
+
+    # for param in shared_layers.parameters():
+    #     param.requires_grad = False
 
     # TODO: make n_corase a commandline parameter
     n_corase = 2
 
-    model = torch.load('results/m30_5way5shot/best_model.t7')
+    # model = torch.load('results/m30_5way5shot/best_model.t7')
 
     def gap_block(in_channels, out_channels, pre_size):
         return nn.Sequential(
