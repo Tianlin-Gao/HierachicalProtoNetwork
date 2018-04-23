@@ -9,6 +9,7 @@ from protonets.models import register_model
 from .utils import euclidean_dist
 from visdom import Visdom
 import copy
+
 viz = Visdom()
 
 class Flatten(nn.Module):
@@ -33,17 +34,16 @@ class Protonet(nn.Module):
         xs = Variable(sample['xs']) # support
         xq = Variable(sample['xq']) # query
         
-
         n_class = xs.size(0)
         assert xq.size(0) == n_class
         n_support = xs.size(1)
         n_query = xq.size(1)
 
-        # corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
-        # corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
+        corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
+        corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
 
-        # corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
-        #             corase_class_q.contiguous().view(n_class * n_query, 1))).long())
+        corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
+                    corase_class_q.contiguous().view(n_class * n_query, 1))).long())
 
         target_inds = torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).long()
         target_inds = Variable(target_inds, requires_grad=False)
@@ -103,6 +103,7 @@ def load_protonet_conv(**kwargs):
     x_dim = kwargs['x_dim']
     hid_dim = kwargs['hid_dim']
     z_dim = kwargs['z_dim']
+    n_corase = kwargs['n_corase']
 
     def conv_block(in_channels, out_channels):
         return nn.Sequential(
@@ -127,12 +128,6 @@ def load_protonet_conv(**kwargs):
     #     copy.deepcopy(model.encoder[2])
     # )
 
-    # for param in shared_layers.parameters():
-    #     param.requires_grad = False
-
-    # TODO: make n_corase a commandline parameter
-    n_corase = 2
-
     # model = torch.load('results/m30_5way5shot/best_model.t7')
 
     def gap_block(in_channels, out_channels, pre_size):
@@ -150,9 +145,6 @@ def load_protonet_conv(**kwargs):
         Flatten()
     )
 
-    # for param in corase_classifier.parameters():
-    #     param.requires_grad = False
-    
     fine_encoders = []
     for i in range(n_corase):
         fine_encoders.append(nn.Sequential(
