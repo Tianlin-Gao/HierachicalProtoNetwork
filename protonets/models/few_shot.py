@@ -34,7 +34,6 @@ class Protonet(nn.Module):
         xs = Variable(sample['xs']) # support
         xq = Variable(sample['xq']) # query
         
-
         n_class = xs.size(0)
         assert xq.size(0) == n_class
         n_support = xs.size(1)
@@ -105,6 +104,7 @@ def load_protonet_conv(**kwargs):
     x_dim = kwargs['x_dim']
     hid_dim = kwargs['hid_dim']
     z_dim = kwargs['z_dim']
+    n_corase = kwargs['n_corase']
 
     def conv_block(in_channels, out_channels):
         return nn.Sequential(
@@ -129,12 +129,6 @@ def load_protonet_conv(**kwargs):
     #     copy.deepcopy(model.encoder[2])
     # )
 
-    # for param in shared_layers.parameters():
-    #     param.requires_grad = False
-
-    # TODO: make n_corase a commandline parameter
-    n_corase = 2
-
     # model = torch.load('results/m30_5way5shot/best_model.t7')
 
     def gap_block(in_channels, out_channels, pre_size):
@@ -151,9 +145,6 @@ def load_protonet_conv(**kwargs):
         gap_block(hid_dim, n_corase, x_dim[1] // 8),
         Flatten()
     )
-
-    # for param in corase_classifier.parameters():
-    #     param.requires_grad = False
 
     fine_encoders = []
     for i in range(n_corase):
