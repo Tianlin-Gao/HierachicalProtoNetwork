@@ -20,15 +20,15 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 class Protonet(nn.Module):
-    def __init__(self, shared_layers, corase_classifier, n_corase, fine_encoder_0, fine_encoder_1):
+    def __init__(self, shared_layers, corase_classifier, n_corase, fine_encoders):
         super(Protonet, self).__init__()
         # self.register_buffer('shared_layers', shared_layers)
+        # self.register_buffer('corase_classifier', corase_classifier)
         self.shared_layers = shared_layers
         self.corase_classifier = corase_classifier
-        # self.register_buffer('corase_classifier', corase_classifier)
         self.n_corase = n_corase
-        self.fine_encoder_0 = fine_encoder_0
-        self.fine_encoder_1 = fine_encoder_1
+        for i in range(self.n_corase):
+            self.add_module('fine_encoder_'+str(i), fine_encoders[i])
 
     def loss(self, sample):
         xs = Variable(sample['xs']) # support
@@ -70,11 +70,12 @@ class Protonet(nn.Module):
         acc_val_corase = torch.eq(y_hat, corase_inds.squeeze()).float().mean()
 
         # fine feature part
-        z = self.fine_encoder_0.forward(z_share)
+        z = self._modules['fine_encoder_0'].forward(z_share)
         z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * z
         z_dim = z.size(-1)
-           
-        z += p_y_corase[:, 1].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self.fine_encoder_1.forward(z_share)
+
+        for i in range(1, self.n_corase):   
+            z += p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
 
         z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
         zq = z[n_class*n_support:]
@@ -154,14 +155,12 @@ def load_protonet_conv(**kwargs):
     # for param in corase_classifier.parameters():
     #     param.requires_grad = False
 
-    fine_encoder_0 = nn.Sequential(
-                conv_block(hid_dim, z_dim),
-                Flatten()
-    )
-    fine_encoder_1 = nn.Sequential(
-                conv_block(hid_dim, z_dim),
-                Flatten()
-    )
+    fine_encoders = []
+    for i in range(n_corase):
+        fine_encoders.append(nn.Sequential(
+                    conv_block(hid_dim, z_dim),
+                    Flatten()
+        ))
     # encoder = nn.Sequential(
     #     conv_block(x_dim[0], hid_dim),
     #     conv_block(hid_dim, hid_dim),
@@ -170,4 +169,4 @@ def load_protonet_conv(**kwargs):
     #     Flatten()
     # )
 
-    return Protonet(shared_layers, corase_classifier, n_corase, fine_encoder_0, fine_encoder_1)
+    return Protonet(shared_layers, corase_classifier, n_corase, fine_encoders)
