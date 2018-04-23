@@ -40,11 +40,11 @@ class Protonet(nn.Module):
         n_support = xs.size(1)
         n_query = xq.size(1)
 
-        # corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
-        # corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
+        corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
+        corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
 
-        # corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
-        #             corase_class_q.contiguous().view(n_class * n_query, 1))).long())
+        corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
+                    corase_class_q.contiguous().view(n_class * n_query, 1))).long())
 
         target_inds = torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).long()
         target_inds = Variable(target_inds, requires_grad=False)
@@ -61,13 +61,13 @@ class Protonet(nn.Module):
 
         # corase classifier part
         z_corase = self.corase_classifier.forward(z_share)
-        # log_p_y_corase = F.log_softmax(z_corase)
+        log_p_y_corase = F.log_softmax(z_corase)
         p_y_corase = F.softmax(z_corase)
          
-        # loss_val_corase = -log_p_y_corase.gather(1, corase_inds).squeeze().view(-1).mean()
+        loss_val_corase = -log_p_y_corase.gather(1, corase_inds).squeeze().view(-1).mean()
 
-        # _, y_hat = log_p_y_corase.max(1)
-        # acc_val_corase = torch.eq(y_hat, corase_inds.squeeze()).float().mean()
+        _, y_hat = log_p_y_corase.max(1)
+        acc_val_corase = torch.eq(y_hat, corase_inds.squeeze()).float().mean()
 
         # fine feature part
         z = self.fine_encoder_0.forward(z_share)
@@ -88,7 +88,8 @@ class Protonet(nn.Module):
         _, y_hat = log_p_y.max(2)
         acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
         
-        return loss_val, {
+        w = 0.5
+        return loss_val + 0.5 * loss_val_corase, {
             'loss': loss_val.data[0],
             'acc': acc_val.data[0]
         }
