@@ -9,6 +9,7 @@ from protonets.models import register_model
 from .utils import euclidean_dist
 from visdom import Visdom
 import copy
+
 viz = Visdom()
 
 class Flatten(nn.Module):
