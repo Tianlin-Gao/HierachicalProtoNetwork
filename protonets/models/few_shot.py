@@ -91,7 +91,7 @@ class Protonet(nn.Module):
                 z1 = self._modules['fine_encoder_'+str(i)][0][0].weight
                 z2 = self._modules['fine_encoder_'+str(j)][0][0].weight
                 loss_diff.append(1 - torch.pow(z1 - z2, 2))
-        weight = 1e-4
+        weight = 1e-5
         if loss_diff != []:
             loss_val = loss_val + weight  / len(loss_diff) * torch.sum(torch.cat(loss_diff, 0))
 
