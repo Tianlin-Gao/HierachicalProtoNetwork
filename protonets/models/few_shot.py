@@ -85,6 +85,16 @@ class Protonet(nn.Module):
         
         loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
 
+        loss_diff = []
+        for i in range(self.n_corase):
+            for j in range(i, self.n_corase):
+                z1 = self._modules['fine_encoder_'+str(i)][0][0].weight
+                z2 = self._modules['fine_encoder_'+str(j)][0][0].weight
+                loss_diff.append(torch.sum(torch.mul(z1, z2)))
+        weight = 1e-3
+        if loss_diff != []:
+            loss_val = loss_val + weight * torch.sum(torch.cat(loss_diff, 0))
+            
         _, y_hat = log_p_y.max(2)
         acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
         
