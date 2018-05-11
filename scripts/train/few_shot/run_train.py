@@ -44,7 +44,7 @@ parser.add_argument('--model.hid_dim', type=int, default=64, metavar='HIDDIM',
                     help="dimensionality of hidden layers (default: 64)")
 parser.add_argument('--model.z_dim', type=int, default=64, metavar='ZDIM',
                     help="dimensionality of output images (default: 64)")
-parser.add_argument('--model.n_corase', type=int, default=5, metavar='ZDIM',
+parser.add_argument('--model.n_corase', type=int, default=32, metavar='ZDIM',
                     help="number of corase classifer (default: 5)")
 # train args
 parser.add_argument('--train.epochs', type=int, default=10000, metavar='NEPOCHS',

@@ -70,15 +70,12 @@ class Protonet(nn.Module):
 
         # fine feature part
         z = self._modules['fine_encoder_0'].forward(z_share)
-        z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1, 1, 1).expand(z.size()) * z
-        
+        z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * z
+        z_dim = z.size(-1)
 
         for i in range(1, self.n_corase):   
-            z += p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1, 1, 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
+            z += p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
 
-        z = F.relu(z)
-        z = F.max_pool2d(z, 2).view(z.size(0), -1)
-        z_dim = z.size(-1)
         z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
         zq = z[n_class*n_support:]
 
@@ -151,10 +148,9 @@ def load_protonet_conv(**kwargs):
     fine_encoders = []
     for i in range(n_corase):
         fine_encoders.append(nn.Sequential(
-                    nn.Conv2d(hid_dim, z_dim, 3, padding=1),
-                    nn.BatchNorm2d(z_dim),
+                    conv_block(hid_dim, z_dim*2),
+                    Flatten()
         ))
-    
     # encoder = nn.Sequential(
     #     conv_block(x_dim[0], hid_dim),
     #     conv_block(hid_dim, hid_dim),
