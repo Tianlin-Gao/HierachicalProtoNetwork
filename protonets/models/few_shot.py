@@ -61,7 +61,7 @@ class Protonet(nn.Module):
         # corase classifier part
         z_corase = self.corase_classifier.forward(z_share)
         # log_p_y_corase = F.log_softmax(z_corase)
-        p_y_corase = F.softmax(z_corase)
+        p_y_corase = F.softmax(z_corase, dim=1)
         
         # loss_val_corase = -log_p_y_corase.gather(1, corase_inds).squeeze().view(-1).mean()
 
@@ -70,30 +70,23 @@ class Protonet(nn.Module):
 
         # fine feature part
         z = self._modules['fine_encoder_0'].forward(z_share)
-        z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * z
-        z_dim = z.size(-1)
+        z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1, 1, 1).expand(z.size()) * z
+        
 
         for i in range(1, self.n_corase):   
-            z += p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
+            z += p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1, 1, 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
 
+        z = F.relu(z)
+        z = F.max_pool2d(z, 2).view(z.size(0), -1)
+        z_dim = z.size(-1)
         z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
         zq = z[n_class*n_support:]
 
         dists = euclidean_dist(zq, z_proto)
 
-        log_p_y = F.log_softmax(-dists).view(n_class, n_query, -1)
+        log_p_y = F.log_softmax(-dists, dim=1).view(n_class, n_query, -1)
         
         loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
-
-        loss_diff = []
-        for i in range(self.n_corase):
-            for j in range(i, self.n_corase):
-                z1 = self._modules['fine_encoder_'+str(i)][0][0].weight
-                z2 = self._modules['fine_encoder_'+str(j)][0][0].weight
-                loss_diff.append(1 - torch.pow(z1 - z2, 2))
-        weight = 1e-5
-        if loss_diff != []:
-            loss_val = loss_val + weight  / len(loss_diff) * torch.sum(torch.cat(loss_diff, 0))
 
         _, y_hat = log_p_y.max(2)
         acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
@@ -158,9 +151,10 @@ def load_protonet_conv(**kwargs):
     fine_encoders = []
     for i in range(n_corase):
         fine_encoders.append(nn.Sequential(
-                    conv_block(hid_dim, z_dim),
-                    Flatten()
+                    nn.Conv2d(hid_dim, z_dim, 3, padding=1),
+                    nn.BatchNorm2d(z_dim),
         ))
+    
     # encoder = nn.Sequential(
     #     conv_block(x_dim[0], hid_dim),
     #     conv_block(hid_dim, hid_dim),
