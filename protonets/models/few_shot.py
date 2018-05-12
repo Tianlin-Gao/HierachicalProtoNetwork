@@ -39,11 +39,11 @@ class Protonet(nn.Module):
         n_support = xs.size(1)
         n_query = xq.size(1)
 
-        corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
-        corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
+        # corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
+        # corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
 
-        corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
-                    corase_class_q.contiguous().view(n_class * n_query, 1))).long())
+        # corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
+        #             corase_class_q.contiguous().view(n_class * n_query, 1))).long())
 
         target_inds = torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).long()
         target_inds = Variable(target_inds, requires_grad=False)
