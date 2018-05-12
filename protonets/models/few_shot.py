@@ -148,7 +148,7 @@ def load_protonet_conv(**kwargs):
     fine_encoders = []
     for i in range(n_corase):
         fine_encoders.append(nn.Sequential(
-                    conv_block(hid_dim, z_dim*2),
+                    conv_block(hid_dim, z_dim),
                     Flatten()
         ))
     # encoder = nn.Sequential(
