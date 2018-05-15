@@ -90,7 +90,7 @@ class Protonet(nn.Module):
 
         dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
 
-        p_y = p_y_corase[n_class*n_support:, 0].contiguous().view(n_class*n_support, 1).expand(dived.size())\
+        p_y = p_y_corase[n_class*n_support:, 0].contiguous().view(n_class*n_query, 1).expand(dived.size())\
              * dists.div(dived)
 
         for i in range(1, self.n_corase):   
@@ -110,7 +110,7 @@ class Protonet(nn.Module):
 
             dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
 
-            p_y += p_y_corase[n_class*n_support:, i].contiguous().view(n_class*n_support, 1).expand(dived.size())\
+            p_y += p_y_corase[n_class*n_support:, i].contiguous().view(n_class*n_query, 1).expand(dived.size())\
              * dists.div(dived)
         log_p_y = torch.log(p_y.add(1e-20)).view(n_class, n_query, -1)
         
