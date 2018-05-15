@@ -69,19 +69,50 @@ class Protonet(nn.Module):
         # acc_val_corase = torch.eq(y_hat, corase_inds.squeeze()).float().mean()
 
         # fine feature part
+        q_m_u_k = p_y_corase[:n_class * n_support].contiguous().view(n_class, n_support, self.n_corase).mean(1)
+        # print(p_y_corase[:n_class * n_support].contiguous().view(n_class, n_support, self.n_corase).sum(1).size())
+
         z = self._modules['fine_encoder_0'].forward(z_share)
         z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * z
         z_dim = z.size(-1)
+        
+        zq = z[n_class*n_support:]
+        z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)\
+            .div(q_m_u_k[:, 0].contiguous().view(n_class, 1).expand(n_class, z_dim) * n_support)
+        
+        dists = euclidean_dist(zq, z_proto)
+        minx = torch.min(dists.detach(), 1)[0]
+        minx = minx.unsqueeze(1).expand(*dists.size())
+        # viz.text("minx<br>"+str(minx).replace("\n", "<br>"))
+        # viz.text("dists<br>"+str(dists).replace("\n", "<br>"))
+        dists = torch.exp(-dists.sub(minx)) * \
+            q_m_u_k[:, 0].contiguous().view(1, n_class).expand(n_class*n_query, n_class)
+
+        dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
+
+        p_y = p_y_corase[n_class*n_support:, 0].contiguous().view(n_class*n_support, 1).expand(dived.size())\
+             * dists.div(dived)
 
         for i in range(1, self.n_corase):   
-            z += p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
+            z = p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
 
-        z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
-        zq = z[n_class*n_support:]
+            zq = z[n_class*n_support:]
+            z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)\
+                .div(q_m_u_k[:, i].contiguous().view(n_class, 1).expand(n_class, z_dim) * n_support)
+            dists = euclidean_dist(zq, z_proto)
+            
+            minx = torch.min(dists.detach(), 1)[0]
+            minx = minx.unsqueeze(1).expand(*dists.size())
+            # viz.text("minx<br>"+str(minx).replace("\n", "<br>"))
+            # viz.text("dists<br>"+str(dists).replace("\n", "<br>"))
+            dists = torch.exp(-dists.sub(minx)) * \
+                q_m_u_k[:, i].contiguous().view(1, n_class).expand(n_class*n_query, n_class)
 
-        dists = euclidean_dist(zq, z_proto)
+            dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
 
-        log_p_y = F.log_softmax(-dists, dim=1).view(n_class, n_query, -1)
+            p_y += p_y_corase[n_class*n_support:, i].contiguous().view(n_class*n_support, 1).expand(dived.size())\
+             * dists.div(dived)
+        log_p_y = torch.log(p_y.add(1e-20)).view(n_class, n_query, -1)
         
         loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
 
