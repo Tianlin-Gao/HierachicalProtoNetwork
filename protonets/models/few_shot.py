@@ -91,9 +91,9 @@ class Protonet(nn.Module):
         dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
         
         p_y = p_y_corase[n_class*n_support:, 0].contiguous().view(n_class*n_query, 1).expand(dived.size())\
-             * dists.div(dived) * q_m_u_k[:, 0].contiguous().view(1, self.n_corase).expand(dived.size())
+             * dists.div(dived) * q_m_u_k[:, 0].contiguous().view(1, n_class).expand(dived.size())
         pdived = p_y_corase[n_class*n_support:, 0].contiguous().view(n_class*n_query, 1).expand(dived.size())\
-             * q_m_u_k[:, 0].contiguous().view(1, self.n_corase).expand(dived.size())
+             * q_m_u_k[:, 0].contiguous().view(1, n_class).expand(dived.size())
         for i in range(1, self.n_corase):   
             # z = p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
             z = self._modules['fine_encoder_'+str(i)].forward(z_share)
@@ -112,9 +112,9 @@ class Protonet(nn.Module):
             dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
 
             p_y += p_y_corase[n_class*n_support:, i].contiguous().view(n_class*n_query, 1).expand(dived.size())\
-                * dists.div(dived) * q_m_u_k[:, i].contiguous().view(1, self.n_corase).expand(dived.size())
+                * dists.div(dived) * q_m_u_k[:, i].contiguous().view(1, n_class).expand(dived.size())
             pdived += p_y_corase[n_class*n_support:, i].contiguous().view(n_class*n_query, 1).expand(dived.size())\
-                * q_m_u_k[:, i].contiguous().view(1, self.n_corase).expand(dived.size())
+                * q_m_u_k[:, i].contiguous().view(1, n_class).expand(dived.size())
         log_p_y = torch.log(p_y.div(pdived).add(1e-20)).view(n_class, n_query, -1)
         loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
 
