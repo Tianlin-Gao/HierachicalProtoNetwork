@@ -29,6 +29,76 @@ class Protonet(nn.Module):
         self.n_corase = n_corase
         for i in range(self.n_corase):
             self.add_module('fine_encoder_'+str(i), fine_encoders[i])
+    
+    #5 way 5 shot
+    def corase_loss(self, sample):
+        xs = Variable(sample['xs']) # support
+        
+        n_class = xs.size(0)
+        n_support = xs.size(1) - 1
+
+        xq = xs[:, 0, :].contiguous().view(n_class, 1, 3, 84, 84) # query
+        xs = xs[:, 1:, :].contiguous()
+        n_query = 1
+
+        # corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
+        # corase_class_q = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_query, 1)
+
+        # corase_inds = Variable(torch.cat((corase_class_s.contiguous().view(n_class * n_support, 1), 
+        #             corase_class_q.contiguous().view(n_class * n_query, 1))).long())
+
+        target_inds = torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).long()
+        target_inds = Variable(target_inds, requires_grad=False)
+
+        if xq.is_cuda:
+            target_inds = target_inds.cuda()
+            # corase_inds = corase_inds.cuda()
+
+        x = torch.cat([xs.view(n_class * n_support, *xs.size()[2:]),
+                       xq.view(n_class * n_query, *xq.size()[2:])], 0)
+
+        # share layers part
+        z_share = self.shared_layers.forward(x)
+
+        # corase classifier part
+        z_corase = self.corase_classifier.forward(z_share)
+        # log_p_y_corase = F.log_softmax(z_corase)
+        p_y_corase = F.softmax(z_corase, dim=1)
+        
+        # loss_val_corase = -log_p_y_corase.gather(1, corase_inds).squeeze().view(-1).mean()
+
+        # _, y_hat = log_p_y_corase.max(1)
+        # acc_val_corase = torch.eq(y_hat, corase_inds.squeeze()).float().mean()
+
+        # fine feature part
+        z = self._modules['fine_encoder_0'].forward(z_share)
+        z = p_y_corase[:, 0].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * z
+        z_dim = z.size(-1)
+
+        for i in range(1, self.n_corase):   
+            z += p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
+
+        z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
+        zq = z[n_class*n_support:]
+
+        dists = euclidean_dist(zq, z_proto)
+
+        log_p_y = F.log_softmax(-dists, dim=1).view(n_class, n_query, -1)
+        
+        loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
+
+        _, y_hat = log_p_y.max(2)
+        acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
+        
+        return loss_val, {
+            'loss': loss_val.data[0],
+            'acc': acc_val.data[0]
+        }
+
+        # return loss_val_corase, {
+        #     'loss': loss_val_corase.data[0],
+        #     'acc': acc_val_corase.data[0]
+        # }
 
     def loss(self, sample):
         xs = Variable(sample['xs']) # support

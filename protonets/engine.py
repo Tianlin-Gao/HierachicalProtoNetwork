@@ -23,6 +23,8 @@ class Engine(object):
         }
 
         state['optimizer'] = state['optim_method'](state['model'].parameters(), **state['optim_config'])
+        import torch
+        corase_optimizer = torch.optim.Adam(state['model'].corase_classifier.parameters(), lr = 0.0001)
 
         self.hooks['on_start'](state)
         while state['epoch'] < state['max_epoch'] and not state['stop']:
@@ -35,6 +37,10 @@ class Engine(object):
             for sample in tqdm(state['loader'], desc="Epoch {:d} train".format(state['epoch'] + 1)):
                 state['sample'] = sample
                 self.hooks['on_sample'](state)
+
+                corase_optimizer.zero_grad()
+                loss, state['output'] = state['model'].corase_loss(state['sample'])
+                loss.backward()
 
                 state['optimizer'].zero_grad()
                 loss, state['output'] = state['model'].loss(state['sample'])
