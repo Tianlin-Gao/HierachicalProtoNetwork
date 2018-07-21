@@ -77,9 +77,7 @@ class Protonet(nn.Module):
         z_dim = z.size(-1)
         
         zq = z[n_class*n_support:]
-        z_proto = (p_y_corase[:n_class*n_support, 0].contiguous().view(n_class*n_support, 1).expand(z[:n_class*n_support].size()) * 
-            z[:n_class*n_support]).view(n_class, n_support, z_dim).sum(1)\
-            .div(q_m_u_k[:, 0].contiguous().view(n_class, 1).expand(n_class, z_dim) * n_support)
+        z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
         
         dists = euclidean_dist(zq, z_proto)
         minx = torch.min(dists.detach(), 1)[0]
@@ -98,9 +96,7 @@ class Protonet(nn.Module):
             # z = p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
             z = self._modules['fine_encoder_'+str(i)].forward(z_share)
             zq = z[n_class*n_support:]
-            z_proto = (p_y_corase[:n_class*n_support, i].contiguous().view(n_class*n_support, 1).expand(z[:n_class*n_support].size()) * 
-                z[:n_class*n_support]).view(n_class, n_support, z_dim).sum(1)\
-                .div(q_m_u_k[:, i].contiguous().view(n_class, 1).expand(n_class, z_dim) * n_support)
+            z_proto = z[:n_class*n_support].view(n_class, n_support, z_dim).mean(1)
             dists = euclidean_dist(zq, z_proto)
             
             minx = torch.min(dists.detach(), 1)[0]
