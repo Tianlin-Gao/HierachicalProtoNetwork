@@ -25,7 +25,7 @@ def evaluate(model, data_loader, meters, desc=None):
         tmpModel = copy.deepcopy(model)
         tmpModel.eval()
         tmpModel.corase_classifier.train()
-        corase_optimizer = torch.optim.Adam(tmpModel.corase_classifier.parameters(), lr = 0.0001)
+        corase_optimizer = torch.optim.Adam(tmpModel.corase_classifier.parameters(), lr = 0.001)
         corase_optimizer.zero_grad()
         loss, _ = tmpModel.corase_loss(sample)
         loss.backward()
