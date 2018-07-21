@@ -12,7 +12,6 @@ def load(opt):
     return get_model(model_name, model_opt)
 
 def evaluate(model, data_loader, meters, desc=None):
-    model.eval()
 
     for field,meter in meters.items():
         meter.reset()
@@ -21,7 +20,16 @@ def evaluate(model, data_loader, meters, desc=None):
         data_loader = tqdm(data_loader, desc=desc)
 
     for sample in data_loader:
-        _, output = model.loss(sample)
+        import copy
+        import torch
+        tmpModel = copy.deepcopy(model)
+        tmpModel.eval()
+        tmpModel.corase_classifier.train()
+        corase_optimizer = torch.optim.Adam(tmpModel.corase_classifier.parameters(), lr = 0.0001)
+        corase_optimizer.zero_grad()
+        loss, _ = tmpModel.corase_loss(sample)
+        loss.backward()
+        _, output = tmpModel.loss(sample)
         for field, meter in meters.items():
             meter.add(output[field])
 
