@@ -57,7 +57,7 @@ class Protonet(nn.Module):
 
         # share layers part
         z_share = self.shared_layers.forward(x)
-
+        
         # corase classifier part
         z_corase = self.corase_classifier.forward(z_share[n_class * n_support:])
         q_m_u_k = self.corase_classifier.forward(z_share[:n_class * n_support].contiguous().view(n_class, n_support, *z_share.size()[1:]).mean(1))
@@ -163,10 +163,13 @@ def load_protonet_conv(**kwargs):
 
     def gap_block(in_channels, out_channels, pre_size):
         return nn.Sequential(
-            nn.Conv2d(hid_dim, out_channels, kernel_size=1),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
-            nn.AvgPool2d(pre_size),
+            conv_block(hid_dim, hid_dim),
+            Flatten(),
+            nn.Linear(1600, out_channels)
+            # nn.Conv2d(hid_dim, out_channels, kernel_size=1),
+            # nn.BatchNorm2d(out_channels),
+            # nn.ReLU(),
+            # nn.AvgPool2d(pre_size),
         )
 
     # corase_classifier = copy.deepcopy(model.corase_classifier)
