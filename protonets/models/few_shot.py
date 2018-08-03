@@ -107,8 +107,6 @@ class Protonet(nn.Module):
             dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
 
             p_y += dists.div(dived) * q_m_u_k[:, i].contiguous().expand(dived.size())
-        print(p_y)
-        print(p_y.sum(1))
         log_p_y = torch.log(p_y.add(1e-20)).view(n_class, n_query, -1)
         loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
 
