@@ -31,14 +31,14 @@ class Protonet(nn.Module):
             self.add_module('fine_encoder_'+str(i), fine_encoders[i])
     
     #5 way 5 shot
-    def corase_loss(self, sample):
+    def corase_loss(self, sample, q_order, s_order):
         xs = Variable(sample['xs']) # support
         
         n_class = xs.size(0)
         n_support = xs.size(1) - 1
 
-        xq = xs[:, 0, :].contiguous().view(n_class, 1, 3, 84, 84) # query
-        xs = xs[:, 1:, :].contiguous()
+        xq = xs[:, q_order, :].contiguous().view(n_class, 1, 3, 84, 84) # query
+        xs = xs[:, s_order, :].contiguous()
         n_query = 1
 
         # corase_class_s = sample['corase_class'].view(n_class, 1, 1).expand(n_class, n_support, 1)
