@@ -24,7 +24,7 @@ class Engine(object):
 
         state['optimizer'] = state['optim_method'](state['model'].parameters(), **state['optim_config'])
         import torch
-        corase_optimizer = torch.optim.Adam(state['model'].corase_classifier.parameters(), lr = 0.01)
+        corase_optimizer = torch.optim.Adam(state['model'].corase_classifier.parameters(), lr = 0.0001)
 
         self.hooks['on_start'](state)
         while state['epoch'] < state['max_epoch'] and not state['stop']:
