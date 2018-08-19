@@ -12,6 +12,7 @@ import copy
 from .losses import HistogramLoss
 
 viz = Visdom()
+criterion = HistogramLoss(num_steps=100, cuda=True)
 
 class Flatten(nn.Module):
     def __init__(self):
@@ -86,7 +87,6 @@ class Protonet(nn.Module):
         
         #log_p_y = F.log_softmax(-dists, dim=1).view(n_class, n_query, -1)
         
-        criterion = HistogramLoss(num_steps=100, cuda=xs.is_cuda)
         #print(z.size())
         #print(target_inds.view(n_class*n_query, -1).size())
         z = z.div(torch.norm(z, dim=1).view(-1, 1))
