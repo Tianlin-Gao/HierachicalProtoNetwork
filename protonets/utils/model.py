@@ -25,14 +25,14 @@ def evaluate(model, data_loader, meters, desc=None):
         tmpModel = copy.deepcopy(model)
         tmpModel.eval()
         tmpModel.corase_classifier.train()
-        corase_optimizer = torch.optim.Adam(tmpModel.corase_classifier.parameters(), lr = 0.1)
+        corase_optimizer = torch.optim.Adam(tmpModel.corase_classifier.parameters(), lr = 0.01)
         corase_optimizer.zero_grad()
-        loss0, _ = tmpModel.corase_loss(sample, 0, [1, 2, 3, 4])
-        loss1, _ = tmpModel.corase_loss(sample, 1, [0, 2, 3, 4])
-        loss2, _ = tmpModel.corase_loss(sample, 2, [0, 1, 3, 4])
-        loss3, _ = tmpModel.corase_loss(sample, 3, [0, 1, 2, 4])
-        loss4, _ = tmpModel.corase_loss(sample, 4, [0, 1, 2, 3])
-        loss = (loss0 + loss1 + loss2 + loss3 + loss4) / 5
+        loss, _ = tmpModel.corase_loss(sample)
+        # loss1, _ = tmpModel.corase_loss(sample, 1, [0, 2, 3, 4])
+        # loss2, _ = tmpModel.corase_loss(sample, 2, [0, 1, 3, 4])
+        # loss3, _ = tmpModel.corase_loss(sample, 3, [0, 1, 2, 4])
+        # loss4, _ = tmpModel.corase_loss(sample, 4, [0, 1, 2, 3])
+        # loss = (loss0 + loss1 + loss2 + loss3 + loss4) / 5
         loss.backward()
         _, output = tmpModel.loss(sample)
         for field, meter in meters.items():

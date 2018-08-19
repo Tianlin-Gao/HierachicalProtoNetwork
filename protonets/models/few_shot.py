@@ -32,7 +32,7 @@ class Protonet(nn.Module):
             self.add_module('fine_encoder_'+str(i), fine_encoders[i])
     
     #5 way 5 shot
-    def corase_loss(self, sample, q_order, s_order):
+    def corase_loss(self, sample):
         
         xs = Variable(sample['xs']) # support
         

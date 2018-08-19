@@ -24,7 +24,7 @@ class Engine(object):
 
         state['optimizer'] = state['optim_method'](state['model'].parameters(), **state['optim_config'])
         import torch
-        corase_optimizer = torch.optim.Adam(state['model'].corase_classifier.parameters(), lr = 0.1)
+        corase_optimizer = torch.optim.Adam(state['model'].corase_classifier.parameters(), lr = 0.01)
 
         self.hooks['on_start'](state)
         while state['epoch'] < state['max_epoch'] and not state['stop']:
@@ -39,12 +39,12 @@ class Engine(object):
                 self.hooks['on_sample'](state)
 
                 corase_optimizer.zero_grad()
-                loss0, state['output'] = state['model'].corase_loss(state['sample'], 0, [1, 2, 3, 4])
-                loss1, state['output'] = state['model'].corase_loss(state['sample'], 1, [0, 2, 3, 4])
-                loss2, state['output'] = state['model'].corase_loss(state['sample'], 2, [0, 1, 3, 4])
-                loss3, state['output'] = state['model'].corase_loss(state['sample'], 3, [0, 1, 2, 4])
-                loss4, state['output'] = state['model'].corase_loss(state['sample'], 4, [0, 1, 2, 3])
-                loss = (loss0 + loss1 + loss2 + loss3 + loss4) / 5
+                loss, _ = state['model'].corase_loss(state['sample'])
+                # loss1, state['output'] = state['model'].corase_loss(state['sample'], 1, [0, 2, 3, 4])
+                # loss2, state['output'] = state['model'].corase_loss(state['sample'], 2, [0, 1, 3, 4])
+                # loss3, state['output'] = state['model'].corase_loss(state['sample'], 3, [0, 1, 2, 4])
+                # loss4, state['output'] = state['model'].corase_loss(state['sample'], 4, [0, 1, 2, 3])
+                # loss = (loss0 + loss1 + loss2 + loss3 + loss4) / 5
                 loss.backward()
 
                 state['optimizer'].zero_grad()
