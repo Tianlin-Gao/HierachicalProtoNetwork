@@ -7,6 +7,7 @@ class HistogramLoss(torch.nn.Module):
         self.step = 2 / (num_steps - 1)
         self.cuda = cuda
         self.t = torch.range(-1, 1, self.step).view(-1, 1)
+        print(self.t)
         self.tsize = self.t.size()[0]
         if self.cuda:
             self.t = self.t.cuda()
