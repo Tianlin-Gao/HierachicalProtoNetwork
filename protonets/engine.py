@@ -31,7 +31,7 @@ class Engine(object):
             self.hooks['on_start_epoch'](state)
 
             state['epoch_size'] = len(state['loader'])
-
+            counter = 1
             for sample in tqdm(state['loader'], desc="Epoch {:d} train".format(state['epoch'] + 1)):
                 state['sample'] = sample
                 self.hooks['on_sample'](state)
@@ -39,8 +39,16 @@ class Engine(object):
                 state['optimizer'].zero_grad()
                 loss, state['output'] = state['model'].loss(state['sample'])
                 self.hooks['on_forward'](state)
-
-                loss.backward()
+                if counter == 10:
+                    loss = loss + tmpLoss
+                    loss.backward()
+                    counter = 1
+                elif counter == 1:
+                    tmpLoss = loss
+                    counter += 1                    
+                else:
+                    tmpLoss += loss
+                    counter += 1
                 self.hooks['on_backward'](state)
 
                 state['optimizer'].step()
