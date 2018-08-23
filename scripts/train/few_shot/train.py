@@ -71,6 +71,8 @@ def main(opt):
         meters['val'] = { field: tnt.meter.AverageValueMeter() for field in opt['log.fields'] }
     
     # 看名字知道功能的start函数，配置优化器
+    number_of_steps = 300
+    num_steps_decay_pwc = 25
     def on_start(state):
         if os.path.isfile(trace_file):
             os.remove(trace_file)
