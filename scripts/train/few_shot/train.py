@@ -71,10 +71,15 @@ def main(opt):
         meters['val'] = { field: tnt.meter.AverageValueMeter() for field in opt['log.fields'] }
     
     # 看名字知道功能的start函数，配置优化器
+    number_of_steps = 300
+    num_steps_decay_pwc = 25
     def on_start(state):
         if os.path.isfile(trace_file):
             os.remove(trace_file)
-        state['scheduler'] = lr_scheduler.StepLR(state['optimizer'], opt['train.decay_every'], gamma=0.5)
+        #state['scheduler'] = lr_scheduler.StepLR(state['optimizer'], opt['train.decay_every'], gamma=0.5)
+        state['scheduler'] = lr_scheduler.MultiStepLR(state['optimizer'], milestones=[np.int64(number_of_steps / 2),
+                                                              np.int64(number_of_steps / 2 + num_steps_decay_pwc),
+                                                              np.int64(number_of_steps / 2 + 2*num_steps_decay_pwc)], gamma=0.1)
     engine.hooks['on_start'] = on_start
     
     # 第一个epoch需要解决的事
