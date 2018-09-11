@@ -12,7 +12,7 @@ import copy
 from .losses import HistogramLoss
 
 viz = Visdom()
-criterion = HistogramLoss(num_steps=8, cuda=True)
+criterion = HistogramLoss(num_steps=10, cuda=True)
 
 class Flatten(nn.Module):
     def __init__(self):
