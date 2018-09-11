@@ -28,14 +28,13 @@ class HistogramLoss(torch.nn.Module):
         classes_eq = (classes.repeat(classes_size, 1)  == classes.view(-1, 1).repeat(1, classes_size)).data
         dists = torch.mm(features, features.transpose(0, 1))
         s_inds = torch.triu(torch.ones(classes_eq.size()), 1).byte()
-        print(s_inds.size())
-        if self.cuda:
-            s_inds= s_inds.cuda()
-        pos_inds = classes_eq[s_inds].repeat(self.tsize, 1)
-        neg_inds = ~classes_eq[s_inds].repeat(self.tsize, 1)
-        pos_size = classes_eq[s_inds].sum()
-        neg_size = (~classes_eq[s_inds]).sum()
-        s = dists[s_inds].view(1, -1)
+        # if self.cuda:
+        #     s_inds= s_inds.cuda()
+        pos_inds = classes_eq.cpu()[s_inds].repeat(self.tsize, 1)
+        neg_inds = ~classes_eq.cpu()[s_inds].repeat(self.tsize, 1)
+        pos_size = classes_eq.cpu()[s_inds].sum()
+        neg_size = (~classes_eq.cpu()[s_inds]).sum()
+        s = dists.cpu()[s_inds].view(1, -1)
         s_repeat = s.repeat(self.tsize, 1)
         delta_repeat = (torch.floor((s_repeat.data + 1) / self.step) * self.step - 1).float()
         
@@ -43,11 +42,13 @@ class HistogramLoss(torch.nn.Module):
         histogram_neg = histogram(neg_inds, neg_size)
         histogram_pos_repeat = histogram_pos.view(-1, 1).repeat(1, histogram_pos.size()[0])
         histogram_pos_inds = torch.tril(torch.ones(histogram_pos_repeat.size()), -1).byte()
-        if self.cuda:
-            histogram_pos_inds = histogram_pos_inds.cuda()
+        # if self.cuda:
+        #     histogram_pos_inds = histogram_pos_inds.cuda()
         histogram_pos_repeat[histogram_pos_inds] = 0
         histogram_pos_cdf = histogram_pos_repeat.sum(0)
-        loss = torch.sum(histogram_neg * histogram_pos_cdf)
-        
+        if self.cuda:
+            loss = torch.sum((histogram_neg * histogram_pos_cdf).cuda())
+        else:
+            loss = torch.sum(histogram_neg * histogram_pos_cdf)
         return loss
     
