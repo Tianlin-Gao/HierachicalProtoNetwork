@@ -76,10 +76,10 @@ def main(opt):
     def on_start(state):
         if os.path.isfile(trace_file):
             os.remove(trace_file)
-        state['scheduler'] = lr_scheduler.StepLR(state['optimizer'], opt['train.decay_every'], gamma=0.5)
-        # state['scheduler'] = lr_scheduler.MultiStepLR(state['optimizer'], milestones=[np.int64(number_of_steps / 2),
-        #                                                       np.int64(number_of_steps / 2 + num_steps_decay_pwc),
-        #                                                       np.int64(number_of_steps / 2 + 2*num_steps_decay_pwc)], gamma=0.1)
+        # state['scheduler'] = lr_scheduler.StepLR(state['optimizer'], opt['train.decay_every'], gamma=0.5)
+        state['scheduler'] = lr_scheduler.MultiStepLR(state['optimizer'], milestones=[np.int64(number_of_steps / 2),
+                                                              np.int64(number_of_steps / 2 + num_steps_decay_pwc),
+                                                              np.int64(number_of_steps / 2 + 2*num_steps_decay_pwc)], gamma=0.1)
     engine.hooks['on_start'] = on_start
     
     # 第一个epoch需要解决的事
@@ -102,8 +102,8 @@ def main(opt):
     lossPic = visual_utils.train_val_loss(title)
     accPic = visual_utils.train_val_acc(title)
     def on_end_epoch(hook_state, state):
-        # if state['epoch'] == 380:
-        #     state['scheduler'] = lr_scheduler.StepLR(state['optimizer'], opt['train.decay_every'], gamma=0.5)
+        if state['epoch'] == 480:
+            state['scheduler'] = lr_scheduler.StepLR(state['optimizer'], opt['train.decay_every'], gamma=0.5)
 
         if val_loader is not None:
             if 'best_loss' not in hook_state:
