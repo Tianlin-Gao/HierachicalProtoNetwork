@@ -114,7 +114,13 @@ class Protonet(nn.Module):
             pdived += p_y_corase[:, i].contiguous().view(n_class*n_query, 1).expand(dived.size())\
                 * q_m_u_k[:, i].contiguous().view(1, n_class).expand(dived.size())
         log_p_y = torch.log(p_y.div(pdived).add(1e-20)).view(n_class, n_query, -1)
-        loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
+        # loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
+
+        loss = torch.nn.CrossEntropyLoss()
+        target = Variable(torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).contiguous().view(-1).long())
+        if xq.is_cuda:
+            target = target.cuda()
+        loss_val = loss(-dists, target)
 
         _, y_hat = log_p_y.max(2)
         acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
