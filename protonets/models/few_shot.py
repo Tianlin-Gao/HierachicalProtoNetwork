@@ -165,11 +165,11 @@ def load_protonet_conv(**kwargs):
         return nn.Sequential(
             conv_block(hid_dim, hid_dim),
             Flatten(),
-            nn.Linear(1600, out_channels)
-            # nn.Conv2d(hid_dim, out_channels, kernel_size=1),
-            # nn.BatchNorm2d(out_channels),
-            # nn.ReLU(),
-            # nn.AvgPool2d(pre_size),
+            # nn.Linear(1600, out_channels)
+            nn.Conv2d(hid_dim, out_channels, kernel_size=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(),
+            nn.AvgPool2d(pre_size)
         )
 
     # corase_classifier = copy.deepcopy(model.corase_classifier)
