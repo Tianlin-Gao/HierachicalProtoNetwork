@@ -163,8 +163,8 @@ def load_protonet_conv(**kwargs):
 
     def gap_block(in_channels, out_channels, pre_size):
         return nn.Sequential(
-            conv_block(hid_dim, hid_dim),
-            Flatten(),
+            # conv_block(hid_dim, hid_dim),
+            # Flatten(),
             # nn.Linear(1600, out_channels)
             nn.Conv2d(hid_dim, out_channels, kernel_size=1),
             nn.BatchNorm2d(out_channels),
