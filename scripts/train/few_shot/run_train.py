@@ -55,7 +55,7 @@ parser.add_argument('--train.learning_rate', type=float, default=0.001, metavar=
                     help='learning rate (default: 0.0001)')
 parser.add_argument('--train.decay_every', type=int, default=20, metavar='LRDECAY',
                     help='number of epochs after which to decay the learning rate')
-default_weight_decay = 0.0
+default_weight_decay = 0.0005
 parser.add_argument('--train.weight_decay', type=float, default=default_weight_decay, metavar='WD',
                     help="weight decay (default: {:f})".format(default_weight_decay))
 parser.add_argument('--train.patience', type=int, default=200, metavar='PATIENCE',
