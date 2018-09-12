@@ -59,12 +59,11 @@ class Protonet(nn.Module):
         z_share = self.shared_layers.forward(x)
         
         # corase classifier part
-        #z_corase = self.corase_classifier.forward(z_share[n_class * n_support:])
-        q_m_u_k = self.corase_classifier.forward(z_share[n_class * n_support:] + z_share[:n_class * n_support].contiguous().view(1, n_class * n_support, *z_share.size()[1:]).mean(1))
+        z_corase = self.corase_classifier.forward(z_share[n_class * n_support:])
+        q_m_u_k = self.corase_classifier.forward(z_share[:n_class * n_support].contiguous().view(n_class, n_support, *z_share.size()[1:]).mean(1))
         q_m_u_k = F.softmax(q_m_u_k, dim=1)
-        
         # log_p_y_corase = F.log_softmax(z_corase)
-        #p_y_corase = F.softmax(z_corase, dim=1)
+        p_y_corase = F.softmax(z_corase, dim=1)
         
         # loss_val_corase = -log_p_y_corase.gather(1, corase_inds).squeeze().view(-1).mean()
 
@@ -90,7 +89,11 @@ class Protonet(nn.Module):
         dists = torch.exp(-dists.sub(minx))
 
         dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
-        p_y = dists.div(dived.add(1e-20)) * q_m_u_k[:, 0].contiguous().view(-1, 1).expand(dived.size())
+        
+        p_y = p_y_corase[:, 0].contiguous().view(n_class*n_query, 1).expand(dived.size())\
+             * dists.div(dived) * q_m_u_k[:, 0].contiguous().view(1, n_class).expand(dived.size())
+        pdived = p_y_corase[:, 0].contiguous().view(n_class*n_query, 1).expand(dived.size())\
+             * q_m_u_k[:, 0].contiguous().view(1, n_class).expand(dived.size())
         for i in range(1, self.n_corase):   
             # z = p_y_corase[:, i].contiguous().view(p_y_corase.size()[0], 1).expand(z.size()) * self._modules['fine_encoder_'+str(i)].forward(z_share)
             z = self._modules['fine_encoder_'+str(i)].forward(z_share)
@@ -106,15 +109,12 @@ class Protonet(nn.Module):
 
             dived = dists.sum(1).unsqueeze(1).expand(*dists.size())
 
-            p_y += dists.div(dived.add(1e-20)) * q_m_u_k[:, i].contiguous().view(-1, 1).expand(dived.size())
-        log_p_y = torch.log(p_y.add(1e-20)).view(n_class, n_query, -1)
-        # loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
-        
-        loss = torch.nn.CrossEntropyLoss()
-        target = Variable(torch.arange(0, n_class).view(n_class, 1, 1).expand(n_class, n_query, 1).contiguous().view(-1).long())
-        if xq.is_cuda:
-            target = target.cuda()
-        loss_val = loss(-dists, target)
+            p_y += p_y_corase[:, i].contiguous().view(n_class*n_query, 1).expand(dived.size())\
+                * dists.div(dived) * q_m_u_k[:, i].contiguous().view(1, n_class).expand(dived.size())
+            pdived += p_y_corase[:, i].contiguous().view(n_class*n_query, 1).expand(dived.size())\
+                * q_m_u_k[:, i].contiguous().view(1, n_class).expand(dived.size())
+        log_p_y = torch.log(p_y.div(pdived).add(1e-20)).view(n_class, n_query, -1)
+        loss_val = -log_p_y.gather(2, target_inds).squeeze().view(-1).mean()
 
         _, y_hat = log_p_y.max(2)
         acc_val = torch.eq(y_hat, target_inds.squeeze()).float().mean()
